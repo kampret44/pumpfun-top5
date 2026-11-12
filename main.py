@@ -39,7 +39,13 @@ RISER_MARKS = 3           # window (marks) over which "recent riser" is measured
 CALIB = 0.58              # share of a place's candidate probability bet on named coins,
                           # i.e. ~42% of each place is left unnamed for born-after coins
 MIN_NAME_P = 0.02         # a lower named probability is dropped (its mass returns unnamed)
-SIZE_SMOOTH = 18.0        # pseudo-samples spread over the size bins (robust to few sims)
+SIZE_SMOOTH = 40.0        # pseudo-samples spread over the size bins (robust to few sims)
+TREND_A = 0.13            # place-cap trend (log form): the top places' caps grow as new
+                          # coins pump and take the top, so a simulated place cap is
+                          # shifted up by TREND_A * ln(1 + H) for the SIZE distribution
+                          # only (the ranking is unchanged). A max over a growing
+                          # population grows logarithmically, so the shift saturates
+                          # over long horizons instead of running away linearly.
 
 
 def log_cap_sol(lamports):
@@ -178,7 +184,7 @@ def simulate(task, params, candidates, steps_list, rng):
                     order_counts[(k, cand)] = order_counts.get((k, cand), 0) + 1
             for k in range(1, places + 1):
                 if len(caps) >= k and caps[k - 1][0] > COLLAPSE_FLOOR_LOG:
-                    lc = caps[k - 1][0]
+                    lc = caps[k - 1][0] + TREND_A * math.log1p(H)
                     key = (k, bin_of(lc, edges, nbins))
                     size_counts[key] = size_counts.get(key, 0) + 1
     return order_counts, size_counts, denom
